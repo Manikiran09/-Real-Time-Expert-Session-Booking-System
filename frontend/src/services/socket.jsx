@@ -51,3 +51,21 @@ export const onBookingUpdate = (callback) => {
   s.on('bookingUpdate', callback)
   return () => s.off('bookingUpdate', callback)
 }
+
+export const onSlotBooked = (callback) => {
+  const s = connectSocket()
+  s.on('slot-booked', callback)
+  return () => s.off('slot-booked', callback)
+}
+
+export const onSlotFreed = (callback) => {
+  const s = connectSocket()
+  s.on('slot-freed', callback)
+  return () => s.off('slot-freed', callback)
+}
+
+export const onBookingStatusUpdated = (callback) => {
+  const s = connectSocket()
+  s.on('booking-status-updated', callback)
+  return () => s.off('booking-status-updated', callback)
+}

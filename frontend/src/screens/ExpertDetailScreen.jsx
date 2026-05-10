@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { expertService, bookingService } from '../services/api'
 import Field from '../components/Field'
 import { validateBooking } from '../utils/validators'
+import { connectSocket, onSlotBooked, onSlotFreed } from '../services/socket'
 import './ExpertDetailScreen.css'
 
 const flattenSlots = (availableSlots = {}) =>
@@ -27,9 +28,48 @@ export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess 
     notes: '',
   })
   const [formErrors, setFormErrors] = useState({})
+  const [successMessage, setSuccessMessage] = useState('')
 
   useEffect(() => {
     loadExpertDetails()
+  }, [expertId])
+
+  // connect socket and listen for real-time slot updates
+  useEffect(() => {
+    connectSocket()
+    const offBooked = onSlotBooked((payload) => {
+      if (!payload) return
+      const { expertId: eId, timeSlotId } = payload
+      if (String(eId) !== String(expertId)) return
+      // mark slot as booked
+      setExpert((prev) => {
+        if (!prev) return prev
+        const slots = { ...(prev.availableSlots || {}) }
+        Object.keys(slots).forEach((d) => {
+          slots[d] = slots[d].map((s) => (s._id === timeSlotId ? { ...s, isBooked: true } : s))
+        })
+        return { ...prev, availableSlots: slots }
+      })
+    })
+
+    const offFreed = onSlotFreed((payload) => {
+      if (!payload) return
+      const { expertId: eId, timeSlotId } = payload
+      if (String(eId) !== String(expertId)) return
+      setExpert((prev) => {
+        if (!prev) return prev
+        const slots = { ...(prev.availableSlots || {}) }
+        Object.keys(slots).forEach((d) => {
+          slots[d] = slots[d].map((s) => (s._id === timeSlotId ? { ...s, isBooked: false } : s))
+        })
+        return { ...prev, availableSlots: slots }
+      })
+    })
+
+    return () => {
+      offBooked()
+      offFreed()
+    }
   }, [expertId])
 
   const loadExpertDetails = async () => {
@@ -79,25 +119,30 @@ export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess 
 
     if (!validation.isValid) {
       setFormErrors(validation.errors)
-      return
-    }
-
-    try {
-      setSubmitting(true)
-      await bookingService.create({
-        clientName: formData.clientName,
-        clientEmail: formData.clientEmail,
-        clientPhone: formData.clientPhone,
-        timeSlotId: formData.timeSlotId,
-        bookingDate: selectedSlot?.date,
-        startTime: selectedSlot?.startTime,
-        endTime: selectedSlot?.endTime,
-        expertId,
-      })
-      localStorage.setItem('clientEmail', formData.clientEmail.trim().toLowerCase())
-      onBookingSuccess()
-    } catch (err) {
-      setError(err.message || 'Failed to create booking')
+      try {
+        setSubmitting(true)
+        const created = await bookingService.create({
+          clientName: formData.clientName,
+          clientEmail: formData.clientEmail,
+          clientPhone: formData.clientPhone,
+          timeSlotId: formData.timeSlotId,
+          bookingDate: selectedDate,
+          startTime: selectedSlot?.startTime,
+          endTime: selectedSlot?.endTime,
+          expertId,
+        })
+        localStorage.setItem('clientEmail', formData.clientEmail.trim().toLowerCase())
+        // show success message briefly then navigate to My Bookings
+        setError(null)
+        setSuccessMessage('Booking confirmed! Redirecting to My Bookings...')
+        setTimeout(() => {
+          onBookingSuccess()
+        }, 1200)
+      } catch (err) {
+        setError(err.message || 'Failed to create booking')
+      } finally {
+        setSubmitting(false)
+      }
     } finally {
       setSubmitting(false)
     }
@@ -143,6 +188,9 @@ export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess 
             <h2>Book a Session</h2>
 
             {error && <div className="form-error">{error}</div>}
+            {typeof successMessage === 'string' && successMessage && (
+              <div className="form-success">{successMessage}</div>
+            )}
 
             <Field
               label="Your Name"
@@ -198,10 +246,13 @@ export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess 
                   <button
                     type="button"
                     key={slot._id}
-                    className={`timeslot-item ${formData.timeSlotId === slot._id ? 'selected' : ''}`}
-                    onClick={() => setFormData((prev) => ({ ...prev, timeSlotId: slot._id }))}
+                    className={`timeslot-item ${formData.timeSlotId === slot._id ? 'selected' : ''} ${slot.isBooked ? 'booked' : ''}`}
+                    onClick={() => !slot.isBooked && setFormData((prev) => ({ ...prev, timeSlotId: slot._id }))}
+                    disabled={slot.isBooked}
+                    title={slot.isBooked ? 'This slot is already booked' : ''}
                   >
                     {slot.startTime} - {slot.endTime}
+                    {slot.isBooked && <span className="slot-badge">Booked</span>}
                   </button>
                 ))}
               </div>
