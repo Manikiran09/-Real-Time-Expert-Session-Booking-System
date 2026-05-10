@@ -4,6 +4,14 @@ import Field from '../components/Field'
 import { validateBooking } from '../utils/validators'
 import './ExpertDetailScreen.css'
 
+const flattenSlots = (availableSlots = {}) =>
+  Object.entries(availableSlots).flatMap(([date, slots]) =>
+    slots.map((slot) => ({
+      ...slot,
+      displayDate: date,
+    }))
+  )
+
 export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess }) {
   const [expert, setExpert] = useState(null)
   const [slots, setSlots] = useState([])
@@ -11,10 +19,10 @@ export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [formData, setFormData] = useState({
-    userName: '',
-    userEmail: '',
-    userPhone: '',
-    slotId: '',
+    clientName: '',
+    clientEmail: '',
+    clientPhone: '',
+    timeSlotId: '',
     notes: '',
   })
   const [formErrors, setFormErrors] = useState({})
@@ -26,12 +34,9 @@ export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess 
   const loadExpertDetails = async () => {
     try {
       setLoading(true)
-      const [expertData, slotsData] = await Promise.all([
-        expertService.getById(expertId),
-        expertService.getSlots(expertId),
-      ])
+      const expertData = await expertService.getById(expertId)
       setExpert(expertData)
-      setSlots(slotsData)
+      setSlots(flattenSlots(expertData?.availableSlots))
       setError(null)
     } catch (err) {
       setError(err.message || 'Failed to load expert details')
@@ -57,9 +62,13 @@ export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess 
   const handleSubmit = async (e) => {
     e.preventDefault()
 
+    const selectedSlot = slots.find((slot) => slot._id === formData.timeSlotId)
+
     const validation = validateBooking({
       ...formData,
-      slotId: formData.slotId,
+      bookingDate: selectedSlot?.date,
+      startTime: selectedSlot?.startTime,
+      endTime: selectedSlot?.endTime,
     })
 
     if (!validation.isValid) {
@@ -70,9 +79,16 @@ export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess 
     try {
       setSubmitting(true)
       await bookingService.create({
-        ...formData,
+        clientName: formData.clientName,
+        clientEmail: formData.clientEmail,
+        clientPhone: formData.clientPhone,
+        timeSlotId: formData.timeSlotId,
+        bookingDate: selectedSlot?.date,
+        startTime: selectedSlot?.startTime,
+        endTime: selectedSlot?.endTime,
         expertId,
       })
+      localStorage.setItem('clientEmail', formData.clientEmail.trim().toLowerCase())
       onBookingSuccess()
     } catch (err) {
       setError(err.message || 'Failed to create booking')
@@ -104,8 +120,8 @@ export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess 
         <div className="detail-container">
           <div className="expert-info">
             <h1>{expert.name}</h1>
-            <p className="specialization">{expert.specialization}</p>
-            <p className="expertise">{expert.expertise}</p>
+            <p className="specialization">{expert.category}</p>
+            <p className="expertise">{expert.experience} years experience</p>
             <p className="bio">{expert.bio}</p>
             <div className="stats">
               <div className="stat">
@@ -124,43 +140,43 @@ export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess 
 
             <Field
               label="Your Name"
-              name="userName"
-              value={formData.userName}
+              name="clientName"
+              value={formData.clientName}
               onChange={handleInputChange}
-              error={formErrors.userName}
+              error={formErrors.clientName}
               required
             />
 
             <Field
               label="Email"
               type="email"
-              name="userEmail"
-              value={formData.userEmail}
+              name="clientEmail"
+              value={formData.clientEmail}
               onChange={handleInputChange}
-              error={formErrors.userEmail}
+              error={formErrors.clientEmail}
               required
             />
 
             <Field
               label="Phone"
               type="tel"
-              name="userPhone"
-              value={formData.userPhone}
+              name="clientPhone"
+              value={formData.clientPhone}
               onChange={handleInputChange}
-              error={formErrors.userPhone}
+              error={formErrors.clientPhone}
               required
             />
 
             <Field
               label="Select Time Slot"
               type="select"
-              name="slotId"
-              value={formData.slotId}
+              name="timeSlotId"
+              value={formData.timeSlotId}
               onChange={handleInputChange}
-              error={formErrors.slotId}
+              error={formErrors.timeSlotId}
               options={slots.map((slot) => ({
                 id: slot._id,
-                label: `${slot.date} - ${slot.startTime} to ${slot.endTime}`,
+                label: `${slot.displayDate} - ${slot.startTime} to ${slot.endTime}`,
               }))}
               required
             />

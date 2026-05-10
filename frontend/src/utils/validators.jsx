@@ -19,20 +19,20 @@ export const validateRequired = (value) => {
 export const validateBooking = (bookingData) => {
   const errors = {}
 
-  if (!validateRequired(bookingData.userName)) {
-    errors.userName = 'Name is required'
+  if (!validateRequired(bookingData.clientName)) {
+    errors.clientName = 'Name is required'
   }
 
-  if (!validateEmail(bookingData.userEmail)) {
-    errors.userEmail = 'Valid email is required'
+  if (!validateEmail(bookingData.clientEmail)) {
+    errors.clientEmail = 'Valid email is required'
   }
 
-  if (!validatePhone(bookingData.userPhone)) {
-    errors.userPhone = 'Valid phone number is required'
+  if (!validatePhone(bookingData.clientPhone)) {
+    errors.clientPhone = 'Valid phone number is required'
   }
 
-  if (!bookingData.slotId) {
-    errors.slotId = 'Please select a time slot'
+  if (!bookingData.timeSlotId) {
+    errors.timeSlotId = 'Please select a time slot'
   }
 
   return {

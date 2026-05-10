@@ -42,18 +42,20 @@ apiClient.interceptors.response.use(
   }
 )
 
+const unwrapData = (payload) => payload?.data ?? payload
+
 export const expertService = {
-  getAll: () => apiClient.get('/experts'),
-  getById: (id) => apiClient.get(`/experts/${id}`),
-  getSlots: (id) => apiClient.get(`/experts/${id}/slots`),
+  getAll: async () => unwrapData(await apiClient.get('/experts')),
+  getById: async (id) => unwrapData(await apiClient.get(`/experts/${id}`)),
 }
 
 export const bookingService = {
-  create: (data) => apiClient.post('/bookings', data),
-  getAll: () => apiClient.get('/bookings'),
-  getById: (id) => apiClient.get(`/bookings/${id}`),
-  cancel: (id) => apiClient.put(`/bookings/${id}/cancel`),
-  getMyBookings: () => apiClient.get('/bookings/my-bookings'),
+  create: async (data) => unwrapData(await apiClient.post('/bookings', data)),
+  getAll: async () => unwrapData(await apiClient.get('/bookings')),
+  getById: async (id) => unwrapData(await apiClient.get(`/bookings/${id}`)),
+  cancel: async (id) => unwrapData(await apiClient.delete(`/bookings/${id}`)),
+  getMyBookings: async (email) =>
+    unwrapData(await apiClient.get('/bookings', { params: { email } })),
 }
 
 export default apiClient

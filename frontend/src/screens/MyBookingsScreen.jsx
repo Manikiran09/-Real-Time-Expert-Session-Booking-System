@@ -7,16 +7,21 @@ export default function MyBookingsScreen({ onBackToExperts }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [canceling, setCanceling] = useState(null)
+  const [email, setEmail] = useState(localStorage.getItem('clientEmail') || '')
 
   useEffect(() => {
-    loadBookings()
+    if (email) {
+      loadBookings(email)
+    } else {
+      setLoading(false)
+    }
   }, [])
 
-  const loadBookings = async () => {
+  const loadBookings = async (bookingEmail = email) => {
     try {
       setLoading(true)
-      const data = await bookingService.getMyBookings()
-      setBookings(data)
+      const data = await bookingService.getMyBookings(bookingEmail)
+      setBookings(Array.isArray(data) ? data : [])
       setError(null)
     } catch (err) {
       setError(err.message || 'Failed to load bookings')
@@ -36,7 +41,7 @@ export default function MyBookingsScreen({ onBackToExperts }) {
       setBookings((prev) =>
         prev.map((booking) =>
           booking._id === bookingId
-            ? { ...booking, status: 'cancelled' }
+            ? { ...booking, status: 'Cancelled' }
             : booking
         )
       )
@@ -51,11 +56,37 @@ export default function MyBookingsScreen({ onBackToExperts }) {
     return <div className="loading">Loading your bookings...</div>
   }
 
+  if (!email) {
+    return (
+      <div className="my-bookings">
+        <div className="header-section">
+          <h1>My Bookings</h1>
+          <button className="back-btn" onClick={onBackToExperts}>
+            Book Another Session
+          </button>
+        </div>
+
+        <div className="email-search-card">
+          <p>Enter the email you used to book a session to see your bookings.</p>
+          <div className="email-search-form">
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <button onClick={() => loadBookings(email)}>View Bookings</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (error) {
     return (
       <div className="error">
         <p>{error}</p>
-        <button onClick={loadBookings}>Retry</button>
+        <button onClick={() => loadBookings(email)}>Retry</button>
       </div>
     )
   }
@@ -77,10 +108,13 @@ export default function MyBookingsScreen({ onBackToExperts }) {
       ) : (
         <div className="bookings-list">
           {bookings.map((booking) => (
-            <div key={booking._id} className={`booking-card ${booking.status}`}>
+            <div
+              key={booking._id}
+              className={`booking-card ${(booking.status || '').toLowerCase()}`}
+            >
               <div className="booking-header">
                 <h2>{booking.expertId?.name || 'Expert'}</h2>
-                <span className={`status-badge ${booking.status}`}>
+                <span className={`status-badge ${(booking.status || '').toLowerCase()}`}>
                   {booking.status.toUpperCase()}
                 </span>
               </div>
@@ -89,15 +123,14 @@ export default function MyBookingsScreen({ onBackToExperts }) {
                 <div className="detail">
                   <strong>Date:</strong>
                   <span>
-                    {booking.timeSlotId?.date ||
+                    {booking.bookingDate ||
                       new Date(booking.createdAt).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="detail">
                   <strong>Time:</strong>
                   <span>
-                    {booking.timeSlotId?.startTime} -{' '}
-                    {booking.timeSlotId?.endTime}
+                    {booking.startTime} - {booking.endTime}
                   </span>
                 </div>
                 <div className="detail">
@@ -108,13 +141,13 @@ export default function MyBookingsScreen({ onBackToExperts }) {
 
               <div className="user-info">
                 <p>
-                  <strong>Name:</strong> {booking.userName}
+                  <strong>Name:</strong> {booking.clientName}
                 </p>
                 <p>
-                  <strong>Email:</strong> {booking.userEmail}
+                  <strong>Email:</strong> {booking.clientEmail}
                 </p>
                 <p>
-                  <strong>Phone:</strong> {booking.userPhone}
+                  <strong>Phone:</strong> {booking.clientPhone}
                 </p>
               </div>
 
@@ -125,7 +158,7 @@ export default function MyBookingsScreen({ onBackToExperts }) {
                 </div>
               )}
 
-              {booking.status === 'confirmed' && (
+              {booking.status === 'Confirmed' && (
                 <button
                   className="cancel-btn"
                   onClick={() => handleCancelBooking(booking._id)}

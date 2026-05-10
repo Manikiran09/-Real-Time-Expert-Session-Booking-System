@@ -17,7 +17,7 @@ export default function ExpertListingScreen({ onViewDetail, onViewMyBookings }) 
     try {
       setLoading(true)
       const data = await expertService.getAll()
-      setExperts(data)
+      setExperts(Array.isArray(data) ? data : [])
       setError(null)
     } catch (err) {
       setError(err.message || 'Failed to load experts')
@@ -58,9 +58,9 @@ export default function ExpertListingScreen({ onViewDetail, onViewMyBookings }) 
             <div key={expert._id} className="expert-card">
               <div className="expert-header">
                 <h2>{expert.name}</h2>
-                <span className="specialization">{expert.specialization}</span>
+                <span className="specialization">{expert.category}</span>
               </div>
-              <p className="expertise">{expert.expertise}</p>
+              <p className="expertise">{expert.experience} years experience</p>
               <div className="rating">
                 <span>⭐ {expert.rating || 'N/A'}</span>
               </div>

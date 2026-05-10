@@ -34,6 +34,24 @@
   margin: 0 0 1rem 0;
 }
 
+.email-search-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.email-search-form {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.email-search-form input {
+  flex: 1;
+  min-width: 0;
+}
+
 .bookings-list {
   display: flex;
   flex-direction: column;
@@ -180,6 +198,14 @@
   }
 
   .back-btn {
+    width: 100%;
+  }
+
+  .email-search-form {
+    flex-direction: column;
+  }
+
+  .email-search-form button {
     width: 100%;
   }
 
