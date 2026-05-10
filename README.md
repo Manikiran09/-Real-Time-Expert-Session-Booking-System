@@ -26,11 +26,10 @@ Frontend:
 - Socket.IO Client
 - CSS-based responsive UI
 
-Deployment:
-- Vercel (frontend)
-- Render (backend)
-- Docker and Docker Compose
-- GitHub Actions workflow
+Runtime:
+- Local frontend (Vite)
+- Local backend (Express)
+- Docker and Docker Compose (optional)
 
 ## Project Structure
 
@@ -62,16 +61,12 @@ Deployment:
 │   │   └── styles.css
 │   ├── index.html
 │   ├── vite.config.js
-│   ├── vercel.json
 │   ├── nginx.conf
 │   ├── package.json
 │   ├── package-lock.json
 │   ├── .env.example
 │   └── Dockerfile
-├── .github/workflows/deploy.yml
 ├── docker-compose.yml
-├── render.yaml
-├── DEPLOY.md
 └── README.md
 ```
 
@@ -89,12 +84,14 @@ Set required environment variables in `backend/.env`:
 
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/expert-booking
+MONGODB_URI=mongodb+srv://admin:123@cluster0.fu6jdht.mongodb.net/expert-session-booking-system?appName=Cluster0
 NODE_ENV=development
 SOCKET_IO_PORT=5000
 FRONTEND_URL=http://localhost:5173
 CORS_ORIGIN=http://localhost:5173
 ```
+
+Database name used in the URI above: `expert-session-booking-system`.
 
 Optional seed:
 
@@ -119,8 +116,8 @@ cp .env.example .env
 Frontend env (`frontend/.env`):
 
 ```env
-VITE_API_BASE_URL=/api
-VITE_SOCKET_SERVER_URL=
+VITE_API_URL=http://localhost:5000/api
+VITE_SOCKET_URL=http://localhost:5000
 ```
 
 Run frontend:
@@ -168,17 +165,21 @@ Server emits:
 - Graceful duplicate-key conflict handling
 - Cancelled bookings retained for 2 days, then auto-cleaned daily
 
-## Deployment
+## Local Run
 
-See full deployment instructions in `DEPLOY.md`.
+Run backend and frontend in separate terminals:
 
-Included deployment assets:
-- `frontend/vercel.json`
-- `render.yaml`
-- `.github/workflows/deploy.yml`
-- `docker-compose.yml`
-- `backend/Dockerfile`
-- `frontend/Dockerfile`
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ## Build Verification
 

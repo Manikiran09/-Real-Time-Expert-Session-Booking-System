@@ -2,7 +2,7 @@ import io from 'socket.io-client'
 
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
-  'https://real-time-expert-session-booking-system-mlsz.onrender.com'
+  'http://localhost:5000'
 
 let socket = null
 
