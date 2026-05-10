@@ -5,6 +5,7 @@ const http = require('http');
 const socketIO = require('socket.io');
 const connectDB = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
+const { cleanupExpiredCancelledBookings } = require('./utils/bookingMaintenance');
 
 // Import routes
 const expertRoutes = require('./routes/expertRoutes');
@@ -13,9 +14,14 @@ const bookingRoutes = require('./routes/bookingRoutes');
 // Initialize Express app
 const app = express();
 const server = http.createServer(app);
+const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '*')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const io = socketIO(server, {
   cors: {
-    origin: '*',
+    origin: allowedOrigins.includes('*') ? '*' : allowedOrigins,
     methods: ['GET', 'POST'],
   },
 });
@@ -26,8 +32,28 @@ app.set('io', io);
 // Connect to MongoDB
 connectDB();
 
+const scheduleCancelledBookingCleanup = async () => {
+  try {
+    const { deletedCount } = await cleanupExpiredCancelledBookings();
+    if (deletedCount > 0) {
+      console.log(`🧹 Removed ${deletedCount} expired cancelled bookings`);
+    }
+  } catch (error) {
+    console.error('❌ Cancelled booking cleanup failed:', error.message);
+  }
+};
+
+scheduleCancelledBookingCleanup();
+const cleanupTimer = setInterval(scheduleCancelledBookingCleanup, 24 * 60 * 60 * 1000);
+cleanupTimer.unref?.();
+
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: allowedOrigins.includes('*') ? '*' : allowedOrigins,
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -52,6 +52,10 @@ const bookingSchema = new mongoose.Schema(
       enum: ['Pending', 'Confirmed', 'Completed', 'Cancelled'],
       default: 'Pending',
     },
+    cancelledAt: {
+      type: Date,
+      default: null,
+    },
     amount: {
       type: Number,
       required: true,
@@ -69,5 +73,7 @@ const bookingSchema = new mongoose.Schema(
 // Index for faster queries
 bookingSchema.index({ clientEmail: 1, status: 1 });
 bookingSchema.index({ expertId: 1, bookingDate: 1 });
+bookingSchema.index({ timeSlotId: 1 }, { unique: true });
+bookingSchema.index({ expertId: 1, bookingDate: 1, startTime: 1 }, { unique: true });
 
 module.exports = mongoose.model('Booking', bookingSchema);

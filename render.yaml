@@ -1,0 +1,20 @@
+# Example Render service template (adapt values in Render dashboard)
+services:
+  - type: web
+    name: expert-session-backend
+    env: node
+    plan: free
+    buildCommand: "cd backend && npm install"
+    startCommand: "cd backend && npm start"
+    autoDeploy: true
+    envVars:
+      - key: MONGODB_URI
+        value: "<your-mongodb-uri>"
+      - key: JWT_SECRET
+        value: "<your-jwt-secret>"
+      - key: FRONTEND_URL
+        value: "https://<your-vercel-app>.vercel.app"
+      - key: CORS_ORIGIN
+        value: "https://<your-vercel-app>.vercel.app"
+      - key: PORT
+        value: "5000"

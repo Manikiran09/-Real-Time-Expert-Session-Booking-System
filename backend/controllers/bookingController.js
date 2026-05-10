@@ -1,6 +1,8 @@
 const Booking = require('../models/Booking');
 const TimeSlot = require('../models/TimeSlot');
 const Expert = require('../models/Expert');
+const mongoose = require('mongoose');
+const { getCancelledCutoffDate } = require('../utils/bookingMaintenance');
 const { validateBooking, validateBookingStatusUpdate } = require('../middleware/validation');
 
 // Create booking with double-booking prevention
@@ -26,67 +28,97 @@ exports.createBooking = async (req, res, next) => {
       notes,
     } = value;
 
-    // Check if time slot exists and is available
-    const timeSlot = await TimeSlot.findById(timeSlotId);
-    if (!timeSlot) {
-      return res.status(404).json({
-        success: false,
-        message: 'Time slot not found',
-      });
-    }
-
-    if (timeSlot.isBooked || timeSlot.currentBookings >= timeSlot.capacity) {
-      return res.status(400).json({
-        success: false,
-        message: 'Time slot is already booked',
-      });
-    }
-
-    // Verify expert exists
-    const expert = await Expert.findById(expertId);
-    if (!expert) {
-      return res.status(404).json({
-        success: false,
-        message: 'Expert not found',
-      });
-    }
-
-    // Get expert's hourly rate
-    const amount = expert.hourlyRate;
-
-    // Create booking
-    const booking = new Booking({
-      expertId,
-      timeSlotId,
-      clientName,
-      clientEmail,
-      clientPhone,
-      bookingDate,
-      startTime,
-      endTime,
-      notes,
-      amount,
-      status: 'Pending',
-    });
-
     // Use session for transaction to prevent race condition
-    const session = await require('mongoose').startSession();
+    const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
+      // Verify expert exists inside the transaction
+      const expert = await Expert.findById(expertId).session(session);
+      if (!expert) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({
+          success: false,
+          message: 'Expert not found',
+        });
+      }
+
+      // Validate requested slot metadata before reserving the slot
+      const existingSlot = await TimeSlot.findById(timeSlotId).session(session);
+      if (!existingSlot) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({
+          success: false,
+          message: 'Time slot not found',
+        });
+      }
+
+      if (String(existingSlot.expertId) !== String(expertId)) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          success: false,
+          message: 'Selected time slot does not belong to this expert',
+        });
+      }
+
+      const requestedDate = new Date(bookingDate).toISOString().split('T')[0];
+      const slotDate = new Date(existingSlot.date).toISOString().split('T')[0];
+      if (requestedDate !== slotDate || startTime !== existingSlot.startTime || endTime !== existingSlot.endTime) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          success: false,
+          message: 'Booking date/time does not match selected time slot',
+        });
+      }
+
+      // Create booking document now so we can store booking id in slot reservation
+      const booking = new Booking({
+        expertId,
+        timeSlotId,
+        clientName,
+        clientEmail,
+        clientPhone,
+        bookingDate,
+        startTime,
+        endTime,
+        notes,
+        amount: expert.hourlyRate,
+        status: 'Pending',
+      });
+
+      // Atomically reserve the slot only if still available
+      const reservedSlot = await TimeSlot.findOneAndUpdate(
+        {
+          _id: timeSlotId,
+          expertId,
+          isBooked: false,
+          $expr: { $lt: ['$currentBookings', '$capacity'] },
+        },
+        {
+          $set: {
+            isBooked: true,
+            bookedBy: booking._id,
+          },
+          $inc: { currentBookings: 1 },
+        },
+        { new: true, session }
+      );
+
+      if (!reservedSlot) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(409).json({
+          success: false,
+          message: 'Time slot is already booked. Please choose another slot.',
+        });
+      }
+
       // Save booking
       await booking.save({ session });
-
-      // Update time slot with transaction
-      await TimeSlot.findByIdAndUpdate(
-        timeSlotId,
-        {
-          isBooked: true,
-          bookedBy: booking._id,
-          currentBookings: timeSlot.currentBookings + 1,
-        },
-        { session }
-      );
 
       // Update expert stats
       await Expert.findByIdAndUpdate(
@@ -120,6 +152,12 @@ exports.createBooking = async (req, res, next) => {
       throw transactionError;
     }
   } catch (error) {
+    if (error && error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'This time slot has already been booked. Please choose another slot.',
+      });
+    }
     next(error);
   }
 };
@@ -137,6 +175,13 @@ exports.getBookingsByEmail = async (req, res, next) => {
     }
 
     const bookings = await Booking.find({ clientEmail: email })
+      .find({
+        $or: [
+          { status: { $ne: 'Cancelled' } },
+          { cancelledAt: { $gt: getCancelledCutoffDate() } },
+          { cancelledAt: null },
+        ],
+      })
       .populate('expertId', 'name category hourlyRate profileImage')
       .sort({ createdAt: -1 })
       .lean();
@@ -189,9 +234,67 @@ exports.updateBookingStatus = async (req, res, next) => {
       });
     }
 
+    if (value.status === 'Cancelled') {
+      const session = await mongoose.startSession();
+      session.startTransaction();
+
+      try {
+        const booking = await Booking.findById(id).session(session);
+
+        if (!booking) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(404).json({
+            success: false,
+            message: 'Booking not found',
+          });
+        }
+
+        booking.status = 'Cancelled';
+        booking.cancelledAt = new Date();
+        await booking.save({ session });
+
+        const timeSlot = await TimeSlot.findById(booking.timeSlotId).session(session);
+        if (timeSlot) {
+          timeSlot.isBooked = false;
+          timeSlot.currentBookings = Math.max(0, timeSlot.currentBookings - 1);
+          if (timeSlot.currentBookings === 0) {
+            timeSlot.bookedBy = null;
+          }
+          await timeSlot.save({ session });
+        }
+
+        await session.commitTransaction();
+        session.endSession();
+
+        const io = req.app.get('io');
+        if (io) {
+          io.emit('booking-status-updated', {
+            bookingId: id,
+            newStatus: value.status,
+          });
+          io.emit('slot-freed', {
+            expertId: booking.expertId,
+            timeSlotId: booking.timeSlotId,
+            status: 'available',
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: 'Booking status updated successfully',
+          data: booking,
+        });
+      } catch (transactionError) {
+        await session.abortTransaction();
+        session.endSession();
+        throw transactionError;
+      }
+    }
+
     const booking = await Booking.findByIdAndUpdate(
       id,
-      { status: value.status },
+      { status: value.status, cancelledAt: null },
       { new: true, runValidators: true }
     );
 
@@ -202,7 +305,6 @@ exports.updateBookingStatus = async (req, res, next) => {
       });
     }
 
-    // Emit real-time update
     const io = req.app.get('io');
     if (io) {
       io.emit('booking-status-updated', {
@@ -248,6 +350,7 @@ exports.cancelBooking = async (req, res, next) => {
     try {
       // Update booking status
       booking.status = 'Cancelled';
+      booking.cancelledAt = new Date();
       await booking.save({ session });
 
       // Free up time slot
@@ -268,6 +371,7 @@ exports.cancelBooking = async (req, res, next) => {
       const io = req.app.get('io');
       if (io) {
         io.emit('slot-freed', {
+          expertId: booking.expertId,
           timeSlotId: booking.timeSlotId,
           status: 'available',
         });
