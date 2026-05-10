@@ -23,6 +23,7 @@ const io = socketIO(server, {
   cors: {
     origin: allowedOrigins.includes('*') ? '*' : allowedOrigins,
     methods: ['GET', 'POST'],
+    credentials: false,
   },
 });
 
@@ -51,14 +52,22 @@ cleanupTimer.unref?.();
 app.use(
   cors({
     origin: allowedOrigins.includes('*') ? '*' : allowedOrigins,
-    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: false,
   })
 );
 
 // Handle preflight requests
-app.options('*', cors());
+app.options(
+  '*',
+  cors({
+    origin: allowedOrigins.includes('*') ? '*' : allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: false,
+  })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
