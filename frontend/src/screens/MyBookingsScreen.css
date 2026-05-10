@@ -79,6 +79,10 @@
   border-left-color: #ffc107;
 }
 
+.booking-card.completed {
+  border-left-color: #17a2b8;
+}
+
 .booking-header {
   display: flex;
   justify-content: space-between;
@@ -114,6 +118,11 @@
 .status-badge.pending {
   background-color: #fff3cd;
   color: #856404;
+}
+
+.status-badge.completed {
+  background-color: #d1ecf1;
+  color: #0c5460;
 }
 
 .booking-details {

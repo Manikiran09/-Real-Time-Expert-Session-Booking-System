@@ -44,7 +44,7 @@ apiClient.interceptors.response.use(
 const unwrapData = (payload) => payload?.data ?? payload
 
 export const expertService = {
-  getAll: async (params = {}) => unwrapData(await apiClient.get('/experts', { params })),
+  getAll: async (params = {}) => await apiClient.get('/experts', { params }),
   getById: async (id) => unwrapData(await apiClient.get(`/experts/${id}`)),
 }
 

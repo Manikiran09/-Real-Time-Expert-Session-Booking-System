@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { bookingService } from '../services/api'
+import { connectSocket, onBookingStatusUpdated } from '../services/socket'
 import './MyBookingsScreen.css'
 
 export default function MyBookingsScreen({ onBackToExperts }) {
@@ -14,6 +15,22 @@ export default function MyBookingsScreen({ onBackToExperts }) {
       loadBookings(email)
     } else {
       setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    connectSocket()
+    const unsubscribe = onBookingStatusUpdated(({ bookingId, newStatus }) => {
+      if (!bookingId || !newStatus) return
+      setBookings((prev) =>
+        prev.map((booking) =>
+          booking._id === bookingId ? { ...booking, status: newStatus } : booking
+        )
+      )
+    })
+
+    return () => {
+      unsubscribe()
     }
   }, [])
 

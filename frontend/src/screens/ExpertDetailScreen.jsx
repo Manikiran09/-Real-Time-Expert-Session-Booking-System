@@ -5,17 +5,8 @@ import { validateBooking } from '../utils/validators'
 import { connectSocket, onSlotBooked, onSlotFreed } from '../services/socket'
 import './ExpertDetailScreen.css'
 
-const flattenSlots = (availableSlots = {}) =>
-  Object.entries(availableSlots).flatMap(([date, slots]) =>
-    slots.map((slot) => ({
-      ...slot,
-      displayDate: date,
-    }))
-  )
-
 export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess }) {
   const [expert, setExpert] = useState(null)
-  const [slots, setSlots] = useState([])
   const [selectedDate, setSelectedDate] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -77,7 +68,6 @@ export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess 
       setLoading(true)
       const expertData = await expertService.getById(expertId)
       setExpert(expertData)
-      setSlots(flattenSlots(expertData?.availableSlots))
       // default to the first available date if any
       const availableDates = Object.keys(expertData?.availableSlots || {})
       if (availableDates.length > 0) {
@@ -119,30 +109,30 @@ export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess 
 
     if (!validation.isValid) {
       setFormErrors(validation.errors)
-      try {
-        setSubmitting(true)
-        const created = await bookingService.create({
-          clientName: formData.clientName,
-          clientEmail: formData.clientEmail,
-          clientPhone: formData.clientPhone,
-          timeSlotId: formData.timeSlotId,
-          bookingDate: selectedDate,
-          startTime: selectedSlot?.startTime,
-          endTime: selectedSlot?.endTime,
-          expertId,
-        })
-        localStorage.setItem('clientEmail', formData.clientEmail.trim().toLowerCase())
-        // show success message briefly then navigate to My Bookings
-        setError(null)
-        setSuccessMessage('Booking confirmed! Redirecting to My Bookings...')
-        setTimeout(() => {
-          onBookingSuccess()
-        }, 1200)
-      } catch (err) {
-        setError(err.message || 'Failed to create booking')
-      } finally {
-        setSubmitting(false)
-      }
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      await bookingService.create({
+        clientName: formData.clientName,
+        clientEmail: formData.clientEmail,
+        clientPhone: formData.clientPhone,
+        timeSlotId: formData.timeSlotId,
+        bookingDate: selectedDate,
+        startTime: selectedSlot?.startTime,
+        endTime: selectedSlot?.endTime,
+        expertId,
+      })
+      localStorage.setItem('clientEmail', formData.clientEmail.trim().toLowerCase())
+      // show success message briefly then navigate to My Bookings
+      setError(null)
+      setSuccessMessage('Booking confirmed! Redirecting to My Bookings...')
+      setTimeout(() => {
+        onBookingSuccess()
+      }, 1200)
+    } catch (err) {
+      setError(err.message || 'Failed to create booking')
     } finally {
       setSubmitting(false)
     }

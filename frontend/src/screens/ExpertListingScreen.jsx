@@ -14,7 +14,6 @@ export default function ExpertListingScreen({ onViewDetail, onViewMyBookings }) 
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    loadExperts()
     connectSocket()
   }, [])
 
@@ -109,8 +108,6 @@ export default function ExpertListingScreen({ onViewDetail, onViewMyBookings }) 
           ))}
         </div>
       )}
-    </div>
-      )}
 
       <div className="pagination">
         <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
@@ -123,5 +120,6 @@ export default function ExpertListingScreen({ onViewDetail, onViewMyBookings }) 
           Next
         </button>
       </div>
+    </div>
   )
 }
