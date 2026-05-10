@@ -19,9 +19,26 @@ const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) {
+    return true;
+  }
+
+  if (allowedOrigins.includes('*')) {
+    return true;
+  }
+
+  return (
+    allowedOrigins.includes(origin) ||
+    origin.startsWith('http://localhost:') ||
+    origin.startsWith('http://127.0.0.1:') ||
+    origin.startsWith('https://') && (origin.includes('.github.dev') || origin.includes('.app.github.dev'))
+  );
+};
+
 const io = socketIO(server, {
   cors: {
-    origin: allowedOrigins.includes('*') ? '*' : allowedOrigins,
+    origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
     methods: ['GET', 'POST'],
     credentials: false,
   },
@@ -51,7 +68,7 @@ cleanupTimer.unref?.();
 // Middleware
 app.use(
   cors({
-    origin: allowedOrigins.includes('*') ? '*' : allowedOrigins,
+    origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: false,
@@ -62,7 +79,7 @@ app.use(
 app.options(
   '*',
   cors({
-    origin: allowedOrigins.includes('*') ? '*' : allowedOrigins,
+    origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: false,
