@@ -6,6 +6,8 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
+  timeout: 10000,
 })
 
 // Add token to requests
@@ -25,7 +27,18 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('authToken')
       window.location.href = '/login'
     }
-    return Promise.reject(error.response?.data || error.message)
+    
+    if (error.response?.status === 403) {
+      console.error('Access forbidden. Please check CORS configuration.')
+    }
+    
+    if (error.response?.status === 0 || error.code === 'ECONNABORTED') {
+      return Promise.reject({
+        message: 'Network error. Backend server may be unavailable.',
+      })
+    }
+    
+    return Promise.reject(error.response?.data || { message: error.message })
   }
 )
 
