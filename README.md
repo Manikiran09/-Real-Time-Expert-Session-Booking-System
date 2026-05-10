@@ -84,7 +84,7 @@ Set required environment variables in `backend/.env`:
 
 ```env
 PORT=5000
-MONGODB_URI=mongodb+srv://admin:123@cluster0.fu6jdht.mongodb.net/expert-session-booking-system?appName=Cluster0
+MONGODB_URI=mongodb://localhost:27017/expert-booking
 NODE_ENV=development
 SOCKET_IO_PORT=5000
 FRONTEND_URL=http://localhost:5173
