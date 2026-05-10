@@ -93,6 +93,116 @@ CORS_ORIGIN=http://localhost:5173
 
 Database name used in the URI above: `expert-session-booking-system`.
 
+## MongoDB Local Installation
+
+### Windows
+
+1. Download MongoDB Community Server:
+
+[MongoDB Community Download Center](https://www.mongodb.com/try/download/community?utm_source=chatgpt.com)
+
+2. Install with:
+- "Complete" setup
+- Install MongoDB Compass (optional)
+- Install MongoDB as a Windows Service
+
+3. Verify installation:
+
+```bash
+mongod --version
+```
+
+4. Start MongoDB service:
+
+```bash
+net start MongoDB
+```
+
+5. Open Mongo shell:
+
+```bash
+mongosh
+```
+
+6. Default local connection:
+
+```env
+MONGODB_URI=mongodb://127.0.0.1:27017/expert-session-booking-system
+```
+
+---
+
+### Linux (Ubuntu/Debian)
+
+Update packages:
+
+```bash
+sudo apt update
+```
+
+Install MongoDB:
+
+```bash
+sudo apt install -y mongodb
+```
+
+Start MongoDB:
+
+```bash
+sudo service mongodb start
+```
+
+Check status:
+
+```bash
+sudo service mongodb status
+```
+
+Enable auto-start on boot:
+
+```bash
+sudo systemctl enable mongodb
+```
+
+Verify installation:
+
+```bash
+mongod --version
+```
+
+Open Mongo shell:
+
+```bash
+mongosh
+```
+
+Default local connection:
+
+```env
+MONGODB_URI=mongodb://127.0.0.1:27017/expert-session-booking-system
+```
+
+---
+
+### Verify MongoDB Connection
+
+Run:
+
+```bash
+mongosh
+```
+
+Create/use database:
+
+```js
+use("expert-session-booking-system")
+```
+
+Check collections:
+
+```js
+show collections
+```
 Optional seed:
 
 ```bash
