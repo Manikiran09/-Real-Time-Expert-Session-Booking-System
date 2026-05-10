@@ -1,20 +1,31 @@
-# Example Render service template (adapt values in Render dashboard)
 services:
   - type: web
     name: expert-session-backend
     env: node
     plan: free
-    buildCommand: "cd backend && npm install"
-    startCommand: "cd backend && npm start"
-    autoDeploy: true
+    branch: main
+    repo: https://github.com/Manikiran09/-Real-Time-Expert-Session-Booking-System
+    autoDeployOnPush: true
+    buildCommand: "npm ci --prefix backend && npm run build --prefix backend"
+    startCommand: "node backend/server.js"
+    preDeployCommand: "npm run seed --prefix backend"
+    
     envVars:
       - key: MONGODB_URI
-        value: "<your-mongodb-uri>"
+        scope: all
+        value: "${MONGODB_URI}"
       - key: JWT_SECRET
-        value: "<your-jwt-secret>"
+        scope: all
+        value: "${JWT_SECRET}"
       - key: FRONTEND_URL
-        value: "https://<your-vercel-app>.vercel.app"
+        scope: all
+        value: "https://real-time-expert-session-booking-system-i6bleals.vercel.app"
       - key: CORS_ORIGIN
-        value: "https://<your-vercel-app>.vercel.app"
+        scope: all
+        value: "https://real-time-expert-session-booking-system-i6bleals.vercel.app"
       - key: PORT
+        scope: all
         value: "5000"
+      - key: NODE_ENV
+        scope: all
+        value: "production"
