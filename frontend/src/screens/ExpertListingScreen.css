@@ -1,0 +1,123 @@
+.expert-listing {
+  width: 100%;
+}
+
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.header-section h1 {
+  margin: 0;
+}
+
+.my-bookings-btn {
+  background-color: #28a745;
+}
+
+.my-bookings-btn:hover {
+  background-color: #218838;
+}
+
+.no-experts {
+  text-align: center;
+  padding: 3rem;
+  color: #999;
+}
+
+.experts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.expert-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+
+.expert-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.expert-header {
+  margin-bottom: 1rem;
+}
+
+.expert-header h2 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.specialization {
+  display: inline-block;
+  background-color: #007bff;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+}
+
+.expertise {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.rating {
+  margin: 0.5rem 0;
+}
+
+.rating span {
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+.bio {
+  color: #777;
+  font-size: 0.9rem;
+  flex-grow: 1;
+  margin: 1rem 0;
+}
+
+.pricing {
+  margin: 1rem 0;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  padding: 1rem 0;
+}
+
+.price {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #28a745;
+}
+
+.view-button {
+  width: 100%;
+  margin-top: auto;
+}
+
+@media (max-width: 768px) {
+  .experts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header-section {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .my-bookings-btn {
+    width: 100%;
+  }
+}
