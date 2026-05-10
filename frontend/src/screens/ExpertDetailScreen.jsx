@@ -15,6 +15,7 @@ const flattenSlots = (availableSlots = {}) =>
 export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess }) {
   const [expert, setExpert] = useState(null)
   const [slots, setSlots] = useState([])
+  const [selectedDate, setSelectedDate] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
@@ -37,6 +38,11 @@ export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess 
       const expertData = await expertService.getById(expertId)
       setExpert(expertData)
       setSlots(flattenSlots(expertData?.availableSlots))
+      // default to the first available date if any
+      const availableDates = Object.keys(expertData?.availableSlots || {})
+      if (availableDates.length > 0) {
+        setSelectedDate((prev) => prev || availableDates[0])
+      }
       setError(null)
     } catch (err) {
       setError(err.message || 'Failed to load expert details')
@@ -62,11 +68,11 @@ export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess 
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    const selectedSlot = slots.find((slot) => slot._id === formData.timeSlotId)
+    const selectedSlot = (expert?.availableSlots?.[selectedDate] || []).find((slot) => slot._id === formData.timeSlotId)
 
     const validation = validateBooking({
       ...formData,
-      bookingDate: selectedSlot?.date,
+      bookingDate: selectedDate,
       startTime: selectedSlot?.startTime,
       endTime: selectedSlot?.endTime,
     })
@@ -167,19 +173,40 @@ export default function ExpertDetailScreen({ expertId, onBack, onBookingSuccess 
               required
             />
 
-            <Field
-              label="Select Time Slot"
-              type="select"
-              name="timeSlotId"
-              value={formData.timeSlotId}
-              onChange={handleInputChange}
-              error={formErrors.timeSlotId}
-              options={slots.map((slot) => ({
-                id: slot._id,
-                label: `${slot.displayDate} - ${slot.startTime} to ${slot.endTime}`,
-              }))}
-              required
-            />
+            <div className="date-picker">
+              <label htmlFor="booking-date">Select Date</label>
+              <input
+                id="booking-date"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => {
+                  setSelectedDate(e.target.value)
+                  // clear selected timeslot when date changes
+                  setFormData((prev) => ({ ...prev, timeSlotId: '' }))
+                  setFormErrors((prev) => ({ ...prev, timeSlotId: '' }))
+                }}
+              />
+            </div>
+
+            <div className="timeslot-section">
+              <label>Available Time Slots</label>
+              <div className="timeslot-list">
+                {(expert?.availableSlots?.[selectedDate] || []).length === 0 && (
+                  <div className="no-slots">No time slots available for selected date.</div>
+                )}
+                {(expert?.availableSlots?.[selectedDate] || []).map((slot) => (
+                  <button
+                    type="button"
+                    key={slot._id}
+                    className={`timeslot-item ${formData.timeSlotId === slot._id ? 'selected' : ''}`}
+                    onClick={() => setFormData((prev) => ({ ...prev, timeSlotId: slot._id }))}
+                  >
+                    {slot.startTime} - {slot.endTime}
+                  </button>
+                ))}
+              </div>
+              {formErrors.timeSlotId && <div className="field-error">{formErrors.timeSlotId}</div>}
+            </div>
 
             <Field
               label="Notes"

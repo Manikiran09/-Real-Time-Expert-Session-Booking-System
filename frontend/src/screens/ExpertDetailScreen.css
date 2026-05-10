@@ -79,6 +79,59 @@
   margin-bottom: 1.5rem;
 }
 
+.date-picker {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.date-picker label {
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.date-picker input[type='date'] {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  width: 100%;
+}
+
+.timeslot-section {
+  margin-top: 1rem;
+}
+
+.timeslot-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0.5rem;
+}
+
+.timeslot-item {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  background: #fafafa;
+  cursor: pointer;
+}
+
+.timeslot-item.selected {
+  background: #007bff;
+  color: white;
+  border-color: #0069d9;
+}
+
+.no-slots {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.field-error {
+  color: #c82333;
+  margin-top: 0.5rem;
+}
+
 .form-error {
   background-color: #f8d7da;
   color: #721c24;
